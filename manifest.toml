@@ -48,7 +48,7 @@ ram.runtime = "50M"
     [resources.sources.main]
     in_subdir = false
     url = "https://nodejs.org/dist/v20.18.1/node-v20.18.1-linux-x64.tar.gz"
-    sha256 = "3e75221fa01be75e9b946820e06d1fbf4640e8a6f5bbd0c06e6f8e7e68f55d90"
+    sha256 = "259e5a8bf2e15ecece65bd2a47153262eda71c0b2c9700d5e703ce4951572784"
     prefetch = false
     autoupdate.strategy = "latest_github_tag"
 
