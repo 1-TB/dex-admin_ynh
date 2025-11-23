@@ -1,0 +1,68 @@
+#:schema https://raw.githubusercontent.com/YunoHost/apps/main/schemas/manifest.v2.schema.json
+
+packaging_format = 2
+
+id = "dex_webui"
+name = "Dex WebUI Manager"
+description.en = "Web interface to manage Dex OAuth2/OIDC clients and tokens"
+description.fr = "Interface web pour gérer les clients et jetons OAuth2/OIDC de Dex"
+
+version = "1.0~ynh1"
+
+maintainers = []
+
+[upstream]
+license = "MIT"
+website = "https://github.com/dexidp/dex"
+admindoc = "https://dexidp.io/docs/"
+code = "https://github.com/YunoHost-Apps/dex_webui_ynh"
+
+[integration]
+yunohost = ">= 12.0.9"
+helpers_version = "2.1"
+architectures = "all"
+multi_instance = false
+
+ldap = "not_relevant"
+sso = "not_relevant"
+
+disk = "50M"
+ram.build = "200M"
+ram.runtime = "50M"
+
+[install]
+    [install.domain]
+    type = "domain"
+
+    [install.path]
+    type = "path"
+    default = "/dex-admin"
+
+    [install.init_main_permission]
+    type = "group"
+    default = "admins"
+
+[resources]
+    [resources.sources]
+
+    [resources.sources.main]
+    in_subdir = false
+    url = "https://nodejs.org/dist/v20.18.1/node-v20.18.1-linux-x64.tar.gz"
+    sha256 = "3e75221fa01be75e9b946820e06d1fbf4640e8a6f5bbd0c06e6f8e7e68f55d90"
+    prefetch = false
+    autoupdate.strategy = "latest_github_tag"
+
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    [resources.data_dir]
+
+    [resources.permissions]
+    main.url = "/"
+    main.allowed = "admins"
+
+    [resources.ports]
+
+    [resources.apt]
+    packages = []

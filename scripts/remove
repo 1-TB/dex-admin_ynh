@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# REMOVE SYSTEM CONFIGURATION
+#=================================================
+ynh_script_progression "Removing system configurations related to $app..."
+
+# Remove the service from YunoHost
+if ynh_hide_warnings yunohost service status "$app" >/dev/null; then
+    yunohost service remove "$app"
+fi
+
+# Remove systemd config
+ynh_config_remove_systemd
+
+# Remove nginx config
+ynh_config_remove_nginx
+
+# Remove logrotate config
+ynh_config_remove_logrotate
+
+#=================================================
+# REMOVE SUDO PERMISSIONS
+#=================================================
+ynh_script_progression "Removing sudo permissions..."
+
+# Remove sudoers file
+ynh_safe_rm "/etc/sudoers.d/${app}"
+
+# Remove user from dex group
+gpasswd -d "$app" dex 2>/dev/null || true
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression "Removal of $app completed"

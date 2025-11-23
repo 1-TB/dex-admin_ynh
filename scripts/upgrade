@@ -1,0 +1,117 @@
+#!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# STOP SYSTEMD SERVICE
+#=================================================
+ynh_script_progression "Stopping $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="stop"
+
+#=================================================
+# UPGRADE NODEJS
+#=================================================
+ynh_script_progression "Upgrading Node.js..."
+
+# Backup node_modules before removing Node.js
+if [ -d "$install_dir/backend/node_modules" ]; then
+    ynh_safe_rm "$install_dir/backend/node_modules"
+fi
+if [ -d "$install_dir/frontend/node_modules" ]; then
+    ynh_safe_rm "$install_dir/frontend/node_modules"
+fi
+
+# Remove old Node.js
+ynh_safe_rm "$install_dir/node"
+
+# Download and extract new Node.js
+ynh_setup_source --dest_dir="$install_dir/node" --source_id="main"
+chown -R "$app:$app" "$install_dir/node"
+
+#=================================================
+# UPGRADE SOURCE FILES
+#=================================================
+ynh_script_progression "Upgrading source files..."
+
+# Remove old source files
+ynh_safe_rm "$install_dir/backend"
+ynh_safe_rm "$install_dir/frontend"
+
+# Copy new backend files
+cp -r ../sources/backend "$install_dir/"
+chown -R "$app:$app" "$install_dir/backend"
+
+# Copy new frontend files
+cp -r ../sources/frontend "$install_dir/"
+chown -R "$app:$app" "$install_dir/frontend"
+
+#=================================================
+# INSTALL BACKEND DEPENDENCIES
+#=================================================
+ynh_script_progression "Installing backend dependencies..."
+
+pushd "$install_dir/backend"
+    ynh_exec_as_app "$install_dir/node/bin/npm" install --production
+popd
+
+#=================================================
+# BUILD FRONTEND
+#=================================================
+ynh_script_progression "Building frontend..."
+
+pushd "$install_dir/frontend"
+    ynh_exec_as_app "$install_dir/node/bin/npm" install
+    ynh_exec_as_app "$install_dir/node/bin/npm" run build
+popd
+
+#=================================================
+# REAPPLY SYSTEM CONFIGURATION
+#=================================================
+ynh_script_progression "Upgrading system configurations..."
+
+# Update nginx config
+ynh_config_add_nginx
+
+# Update systemd config
+ynh_config_add_systemd
+
+# Update logrotate config
+ynh_config_add_logrotate
+
+# Update service in YunoHost
+yunohost service add "$app" --description="Dex WebUI Manager" --log="/var/log/$app/$app.log"
+
+#=================================================
+# ENSURE SUDO PERMISSIONS
+#=================================================
+ynh_script_progression "Ensuring sudo permissions..."
+
+# Ensure user is in dex group
+usermod -a -G dex "$app" || true
+
+# Ensure sudoers file exists
+if [ ! -f "/etc/sudoers.d/${app}" ]; then
+    cat > "/etc/sudoers.d/${app}" << EOF
+${app} ALL=(ALL:ALL) NOPASSWD: /bin/systemctl restart dex
+EOF
+    chmod 440 "/etc/sudoers.d/${app}"
+fi
+
+#=================================================
+# START SYSTEMD SERVICE
+#=================================================
+ynh_script_progression "Starting $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="start" --log_path="/var/log/$app/$app.log"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression "Upgrade of $app completed"

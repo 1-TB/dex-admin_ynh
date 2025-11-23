@@ -1,0 +1,64 @@
+#!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source ../settings/scripts/_common.sh
+source /usr/share/yunohost/helpers
+
+#=================================================
+# RESTORE THE APP MAIN DIR
+#=================================================
+ynh_script_progression "Restoring the app main directory..."
+
+ynh_restore "$install_dir"
+
+chown -R "$app:$app" "$install_dir"
+
+#=================================================
+# RESTORE SYSTEM CONFIGURATION
+#=================================================
+ynh_script_progression "Restoring system configurations..."
+
+# Restore nginx config
+ynh_restore "/etc/nginx/conf.d/$domain.d/$app.conf"
+
+# Restore systemd config
+ynh_restore "/etc/systemd/system/$app.service"
+systemctl enable "$app.service" --quiet
+
+# Restore logrotate config
+ynh_restore "/etc/logrotate.d/$app"
+
+# Restore sudoers file
+ynh_restore "/etc/sudoers.d/$app"
+
+# Restore logs
+ynh_restore "/var/log/$app/"
+
+# Integrate service in YunoHost
+yunohost service add "$app" --description="Dex WebUI Manager" --log="/var/log/$app/$app.log"
+
+#=================================================
+# RESTORE SUDO PERMISSIONS
+#=================================================
+ynh_script_progression "Restoring sudo permissions..."
+
+# Add user to dex group
+usermod -a -G dex "$app" || true
+
+#=================================================
+# START SERVICE
+#=================================================
+ynh_script_progression "Starting $app's service..."
+
+ynh_systemctl --service="$app" --action="start" --log_path="/var/log/$app/$app.log"
+
+ynh_systemctl --service=nginx --action=reload
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression "Restoration completed for $app"
